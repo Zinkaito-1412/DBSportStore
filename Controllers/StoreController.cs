@@ -1,83 +1,54 @@
 ﻿using DBSportStore.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Web.Mvc;
 
 namespace DBSportStore.Controllers
 {
     public class StoreController : Controller
     {
-        public ActionResult Index()
+        public ActionResult Index(int? categoryId)
         {
-            var products = new List<ProductCardViewModel>
+            ProductRepository repository = new ProductRepository();
+            List<Product> productsFromDatabase = repository.GetAllProducts();
+
+            using (DBSportStoreEntities db = new DBSportStoreEntities())
             {
-                new ProductCardViewModel
+                var categories = db.Categories.ToList();
+
+                ViewBag.Categories = categories;
+                ViewBag.SelectedCategoryId = categoryId;
+
+                if (categoryId.HasValue)
                 {
-                    ProductID = 1,
-                    NamePro = "Nike Air Zoom",
-                    CategoryName = "Giày thể thao",
-                    Price = 1290000,
-                    ImagePro = "shoe-01.jpg"
-                },
-                new ProductCardViewModel
-                {
-                    ProductID = 2,
-                    NamePro = "Adidas Training Tee",
-                    CategoryName = "Áo quần thi đấu",
-                    Price = 590000,
-                    ImagePro = "shirt-01.jpg",
-                    ShortDescription = "Giày thể thao nhẹ, phù hợp cho chạy bộ."
-                },
-                new ProductCardViewModel
-                {
-                    ProductID = 3,
-                    NamePro = "Gym Performance Set",
-                    CategoryName = "Dụng cụ thể thao",
-                    Price = 890000,
-                    ImagePro = "gym-01.jpg",
-                    ShortDescription = "Chất lượng cao"
-                },
-                new ProductCardViewModel
-                {
-                    ProductID = 4,
-                    NamePro = "Running Shoes Pro",
-                    CategoryName = "Giày thể thao",
-                    Price = 1490000,
-                    ImagePro = "shoe-02.jpg",
-                    ShortDescription = "Giày thể thao nhẹ, phù hợp cho chạy bộ."
-                },
-                new ProductCardViewModel
-                {
-                 ProductID = 5,
-                    NamePro = "Đồ tập gym nam",
-                    CategoryName = "Training Sports Shorts",
-                    Price = 200000,
-                    ImagePro = "Gym outfit.jpg",
-                    ShortDescription = "Thoải mái, co giãn tốt, phù hợp khi tập gym."
-                },
-                new ProductCardViewModel
-                {
-                    ProductID = 6,
-                    NamePro = "Giày Sneaker Nam",
-                    CategoryName = "Gym Training Shoes",
-                    Price = 990000,
-                    ImagePro = "shoe-03.jpg",
-                    ShortDescription = "Giày thể thao nhẹ, phù hợp cho chạy bộ."
-                },
-                new ProductCardViewModel
-                {
-                    ProductID = 7,
-                    NamePro = "Bình nước thể thao",
-                    CategoryName = "Phụ kiện thể thao",
-                    Price = 120000,
-                    ImagePro = "gym-02.jpg",
-                    ShortDescription = "Bình nước tiện lợi khi tập luyện thể thao."
+                    productsFromDatabase = productsFromDatabase
+                        .Where(p => p.CategoryID == categoryId.Value)
+                        .ToList();
                 }
 
-            };
+                List<ProductCardViewModel> products =
+                    productsFromDatabase.Select(p =>
+                    {
+                        var category = categories.FirstOrDefault(
+                            c => c.CategoryID == p.CategoryID);
 
+                        return new ProductCardViewModel
+                        {
+                            ProductID = p.ProductID,
+                            NamePro = p.ProductName,
+                            CategoryName = category != null
+                                ? category.CategoryName
+                                : "Chưa phân loại",
+                            Price = p.Price,
+                            ImagePro = p.ImageUrl,
+                            ShortDescription = p.Description
+                        };
+                    }).ToList();
 
-            return View(products);
+                return View(products);
+            }
         }
+
         public ActionResult AboutStore()
         {
             return View();

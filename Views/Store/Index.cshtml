@@ -3,7 +3,13 @@
 @{
     ViewBag.Title = "Trang chủ";
     Layout = "~/Views/Shared/_StoreLayout.cshtml";
+
+    var categories = ViewBag.Categories
+        as IEnumerable<DBSportStore.Models.Category>;
+
+    int? selectedCategoryId = ViewBag.SelectedCategoryId;
 }
+
 <div class="container">
     <section class="hero">
         <h1>SportStore</h1>
@@ -11,34 +17,66 @@
         <a href="#products" class="btn-store">Khám phá sản phẩm</a>
     </section>
 
-    <h2 id="products">Sản phẩm nổi bật</h2>
     <div class="store-sidebar">
         <h3>Danh mục sản phẩm</h3>
+
         <ul>
-            <li>Giày thể thao</li>
-            <li>Áo quần thi đấu</li>
-            <li>Dụng cụ thể thao</li>
-            <li>Phụ kiện thể thao</li>
+            <li>
+                <a href="@Url.Action("Index", "Store")">
+                    Tất cả sản phẩm
+                </a>
+            </li>
+
+            @if (categories != null)
+            {
+                foreach (var category in categories)
+                {
+                    <li>
+                        <a href="@Url.Action("Index", "Store",
+                            new { categoryId = category.CategoryID })">
+                            @category.CategoryName
+                        </a>
+                    </li>
+                }
+            }
         </ul>
     </div>
 
+    <h2 id="products">
+        @(selectedCategoryId.HasValue
+            ? "Sản phẩm theo danh mục"
+            : "Sản phẩm nổi bật")
+    </h2>
+
     <div class="product-grid">
-        @foreach (var item in Model)
+        @if (Model != null && Model.Any())
         {
-            <div class="product-card">
-                <img src="@Url.Content("~/Content/images/" + item.ImagePro)"
-                     alt="@item.NamePro" />
+            foreach (var item in Model)
+            {
+                <div class="product-card">
+                    <img src="@Url.Content("~/Content/Images/" + item.ImagePro)"
+                         alt="@item.NamePro" />
 
-                <p>@item.CategoryName</p>
-                <h3 class="product-name">@item.NamePro</h3>
-                <p class="product-description">@item.ShortDescription</p>
+                    <p>@item.CategoryName</p>
+                    <h3 class="product-name">@item.NamePro</h3>
+                    <p class="product-description">@item.ShortDescription</p>
 
-                <p class="product-price">
-                    @item.Price.ToString("#,##0") đ
-                </p>
+                    <p class="product-price">
+                        @item.Price.ToString("#,##0") đ
+                    </p>
 
-                <a href="#" class="btn-store">Xem chi tiết</a>
-            </div>
+                    @Html.ActionLink(
+                             "Xem chi tiết",
+                             "Details",
+                             "Products",
+                             new { id = item.ProductID },
+                             new { @class = "btn-store" })
+                </div>
+            }
+        }
+        else
+        {
+            <p>Danh mục này hiện chưa có sản phẩm.</p>
         }
     </div>
 </div>
