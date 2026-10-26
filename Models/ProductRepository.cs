@@ -7,11 +7,11 @@ namespace DBSportStore.Models
     {
         public List<Product> GetAllProducts()
         {
-            using (var db = new DBSportStoreEntities())
+            using (DBSportStoreEntities db = new DBSportStoreEntities())
             {
                 return db.Products
-                         .Where(p => p.IsActive)
-                         .ToList();
+                    .Where(p => p.IsActive)
+                    .ToList();
             }
         }
     }

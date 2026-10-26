@@ -8,21 +8,40 @@
         as IEnumerable<DBSportStore.Models.Category>;
 
     int? selectedCategoryId = ViewBag.SelectedCategoryId;
+    string keyword = ViewBag.Keyword as string ?? "";
+
+    decimal? minPrice = ViewBag.MinPrice;
+    decimal? maxPrice = ViewBag.MaxPrice;
+
+    string sortOrder = ViewBag.SortOrder as string ?? "";
+
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalProducts = ViewBag.TotalProducts ?? 0;
 }
 
 <div class="container">
     <section class="hero">
-        <h1>SportStore</h1>
-        <p>Khám phá trang phục, giày và dụng cụ thể thao dành cho bạn.</p>
-        <a href="#products" class="btn-store">Khám phá sản phẩm</a>
+        <h1>MOVE YOUR LIMITS.</h1>
+        <p>
+            Khám phá trang phục, giày và dụng cụ thể thao chất lượng.
+            Chọn sản phẩm phù hợp để sẵn sàng bứt phá mỗi ngày.
+        </p>
+        <a href="#products" class="btn-store">KHÁM PHÁ NGAY</a>
     </section>
 
-    <div class="store-sidebar">
+    <aside class="store-sidebar">
         <h3>Danh mục sản phẩm</h3>
 
         <ul>
             <li>
-                <a href="@Url.Action("Index", "Store")">
+                <a class="@(selectedCategoryId == null ? "selected-category" : "")"
+                   href="@Url.Action("Index", "Store", new {
+                       keyword = keyword,
+                       minPrice = minPrice,
+                       maxPrice = maxPrice,
+                       sortOrder = sortOrder
+                   })">
                     Tất cả sản phẩm
                 </a>
             </li>
@@ -32,51 +51,212 @@
                 foreach (var category in categories)
                 {
                     <li>
-                        <a href="@Url.Action("Index", "Store",
-                            new { categoryId = category.CategoryID })">
+                        <a class="@(selectedCategoryId.HasValue && selectedCategoryId.Value == category.CategoryID ? "selected-category" : "")"
+                           href="@Url.Action("Index", "Store", new {
+                               categoryId = category.CategoryID,
+                               keyword = keyword,
+                               minPrice = minPrice,
+                               maxPrice = maxPrice,
+                               sortOrder = sortOrder
+                           })">
                             @category.CategoryName
                         </a>
                     </li>
                 }
             }
         </ul>
-    </div>
+    </aside>
 
-    <h2 id="products">
-        @(selectedCategoryId.HasValue
-            ? "Sản phẩm theo danh mục"
-            : "Sản phẩm nổi bật")
-    </h2>
+    <section class="catalog-toolbar">
+        <h2>Tìm kiếm sản phẩm</h2>
 
-    <div class="product-grid">
-        @if (Model != null && Model.Any())
+        @using (Html.BeginForm("Index", "Store", FormMethod.Get))
         {
-            foreach (var item in Model)
+            if (selectedCategoryId.HasValue)
             {
-                <div class="product-card">
-                    <img src="@Url.Content("~/Content/Images/" + item.ImagePro)"
-                         alt="@item.NamePro" />
+                <input type="hidden"
+                       name="categoryId"
+                       value="@selectedCategoryId.Value" />
+            }
 
-                    <p>@item.CategoryName</p>
-                    <h3 class="product-name">@item.NamePro</h3>
-                    <p class="product-description">@item.ShortDescription</p>
+            <div class="catalog-search">
+                <input type="text"
+                       name="keyword"
+                       value="@keyword"
+                       placeholder="Nhập tên hoặc mô tả sản phẩm..." />
+            </div>
 
-                    <p class="product-price">
-                        @item.Price.ToString("#,##0") đ
+            <h2>Lọc theo giá</h2>
+
+            <div class="catalog-search">
+                <label for="minPrice">Giá từ (VNĐ)</label>
+
+                <input type="number"
+                       id="minPrice"
+                       name="minPrice"
+                       min="0"
+                       step="1000"
+                       value="@(minPrice.HasValue ? minPrice.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "")"
+                       placeholder="Giá thấp nhất" />
+
+                <label for="maxPrice">Đến (VNĐ)</label>
+
+                <input type="number"
+                       id="maxPrice"
+                       name="maxPrice"
+                       min="0"
+                       step="1000"
+                       value="@(maxPrice.HasValue ? maxPrice.Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "")"
+                       placeholder="Giá cao nhất" />
+
+                <label for="sortOrder">Sắp xếp giá:</label>
+
+                <select id="sortOrder" name="sortOrder">
+                    <option value=""
+                            @(sortOrder == "" ? "selected" : "")>
+                        Mặc định
+                    </option>
+                    <option value="price_asc"
+                            @(sortOrder == "price_asc" ? "selected" : "")>
+                        Giá thấp đến cao
+                    </option>
+                    <option value="price_desc"
+                            @(sortOrder == "price_desc" ? "selected" : "")>
+                        Giá cao đến thấp
+                    </option>
+                </select>
+
+                <button type="submit" class="btn-store">
+                    ÁP DỤNG
+                </button>
+
+                <a href="@Url.Action("Index", "Store")"
+                   class="btn-store">
+                    XÓA BỘ LỌC
+                </a>
+            </div>
+        }
+    </section>
+
+    <section>
+        <h2 id="products">
+            @if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                <text>Kết quả tìm kiếm</text>
+            }
+            else if (selectedCategoryId.HasValue)
+            {
+                <text>Sản phẩm theo danh mục</text>
+            }
+            else
+            {
+                <text>Sản phẩm nổi bật</text>
+            }
+        </h2>
+
+        <p>
+            Hiện có <strong>@totalProducts</strong> sản phẩm phù hợp.
+        </p>
+
+        <div class="product-grid">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <article class="product-card">
+                        <img src="@Url.Content("~/Content/Images/" + item.ImagePro)"
+                             alt="@item.NamePro" />
+
+                        <p>@item.CategoryName</p>
+
+                        <h3 class="product-name">@item.NamePro</h3>
+
+                        <p class="product-description">
+                            @item.ShortDescription
+                        </p>
+
+                        <p class="product-price">
+                            @item.Price.ToString("#,##0") đ
+                        </p>
+
+                        @Html.ActionLink(
+                                 "Xem chi tiết",
+                                 "Details",
+                                 "Products",
+                                 new { id = item.ProductID },
+                                 new { @class = "btn-store" })
+                    </article>
+                }
+            }
+            else
+            {
+                <div class="catalog-empty">
+                    <h3>Chưa tìm thấy sản phẩm</h3>
+                    <p>
+                        Hãy thử thay đổi từ khóa hoặc điều chỉnh
+                        khoảng giá để tìm sản phẩm phù hợp.
                     </p>
-
-                    @Html.ActionLink(
-                             "Xem chi tiết",
-                             "Details",
-                             "Products",
-                             new { id = item.ProductID },
-                             new { @class = "btn-store" })
+                    <a href="@Url.Action("Index", "Store")"
+                       class="btn-store">
+                        XEM TẤT CẢ SẢN PHẨM
+                    </a>
                 </div>
             }
-        }
-        else
-        {
-            <p>Danh mục này hiện chưa có sản phẩm.</p>
-        }
-    </div>
+        </div>
+    </section>
+
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Phân trang sản phẩm">
+            <ul class="pagination">
+                @if (currentPage > 1)
+                {
+                    <li>
+                        <a href="@Url.Action("Index", "Store", new {
+                            categoryId = selectedCategoryId,
+                            keyword = keyword,
+                            minPrice = minPrice,
+                            maxPrice = maxPrice,
+                            sortOrder = sortOrder,
+                            page = currentPage - 1
+                        })">
+                            &laquo; Trước
+                        </a>
+                    </li>
+                }
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="@(i == currentPage ? "active" : "")">
+                        <a href="@Url.Action("Index", "Store", new {
+                            categoryId = selectedCategoryId,
+                            keyword = keyword,
+                            minPrice = minPrice,
+                            maxPrice = maxPrice,
+                            sortOrder = sortOrder,
+                            page = i
+                        })">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                @if (currentPage < totalPages)
+                {
+                    <li>
+                        <a href="@Url.Action("Index", "Store", new {
+                            categoryId = selectedCategoryId,
+                            keyword = keyword,
+                            minPrice = minPrice,
+                            maxPrice = maxPrice,
+                            sortOrder = sortOrder,
+                            page = currentPage + 1
+                        })">
+                            Sau &raquo;
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
 </div>
